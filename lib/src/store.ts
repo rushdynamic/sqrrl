@@ -1,17 +1,14 @@
 import { useSyncExternalStore, useRef } from "react";
-import { Store, Middleware } from "./types";
+import { Initializer, Listener, Selector, SetState, UpdateState, DebugFn } from "./types";
 import getProxyWithStatus from "./proxy";
 import * as compareUtils from "./utils/compare";
 
-const createStore = <State>(
-    initializer: Store.Initializer<State>,
-    debugFn?: Middleware.DebugFn<State>
-) => {
+const createStore = <State>(initializer: Initializer<State>, debugFn?: DebugFn<State>) => {
     let state: State;
-    const listeners = new Set<Store.Listener>();
+    const listeners = new Set<Listener>();
 
     // Immutable state updation
-    const setState: Store.SetState<State> = (action) => {
+    const setState: SetState<State> = (action) => {
         const partiallyUpdatedState = action(state);
         // shallow comparison is enough here because immutable actions
         // always return a new object
@@ -26,7 +23,7 @@ const createStore = <State>(
     };
 
     // Mutable state updation
-    const updateState: Store.UpdateState<State> = (action) => {
+    const updateState: UpdateState<State> = (action) => {
         const { proxyState, changed } = getProxyWithStatus(state);
         action(proxyState);
         if (changed.status) {
@@ -45,7 +42,7 @@ const createStore = <State>(
 
     state = initializer(setState, updateState);
 
-    const useStore = <Result>(selector: Store.Selector<State, Result>): Result => {
+    const useStore = <Result>(selector: Selector<State, Result>): Result => {
         const prevSelectionRef = useRef<Result>(selector(state));
         return useSyncExternalStore(subscribe, () => {
             const newSelection = selector(state);
